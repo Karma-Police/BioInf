@@ -10,7 +10,11 @@
 using namespace std;
 
 const int MAXN = int(5e3);
-const int string_len = 350;
+const int string_len = 300;
+const int BASIS_COUNT = 1;
+const int random_M = 1001;
+const int BASIS_P = 11;
+const int INF = 1e4;
 
 struct edge {
   int to, w;
@@ -39,9 +43,8 @@ string generate(const string & s, int p)
 
   for (int i = 0; i < n; i++)
   {
-    if (rand() % 5001 < p) {
-      res += char((rand() % 2) + 'a');
-      cerr << res[i] << "!" << endl;
+    if (rand() % random_M < p) {
+      res += char((rand() % 4) + 'a');
     } else res += s[i];
   }
   
@@ -58,6 +61,29 @@ int get_distance(const string & a, const string & b)
   return res;
 }
 
+string random_changing(const string & s)
+{
+  string res = s;
+  int n = res.length();
+  for (int _i = 0; _i < BASIS_COUNT; _i++)
+    for (int i = 0; i < n; i++)
+      if ((rand() % random_M) < BASIS_P) res[i] = (rand() % 4) + 'a';
+  return res;
+}
+
+void count_colors(int k, int n)
+{
+  if (n < k) {
+    cerr << "the number of partitions must be less then n" << endl;
+    exit(-1);
+  }
+
+  for (int cur_color = 0; cur_color < k; cur_color++)
+  {
+    for (int i = n / k * cur_color; i < n / k * (cur_color + 1); i++)
+      color[i] = cur_color;
+  }
+}
 
 int main(int args, char ** argv)
 {
@@ -77,28 +103,22 @@ int main(int args, char ** argv)
       p = str_to_num(argv[3]);
   cerr << "!! " << n << " " << k << " " << p << endl;
 
+  string BASIS;
+  for (int j = 0; j < string_len; j++)
+    BASIS += char(rand() % 4 + 'a');
+
+  cerr << "! basis distance:   "; 
   for (int i = 0; i < k; i++)
   {
-    string nxt;
-    for (int j = 0; j < string_len; j++)
-      nxt += char(rand() % 2 + 'a');
-    basis.push_back(nxt);
+    basis.push_back(random_changing(BASIS));
+    cerr << get_distance(BASIS, basis[i]) << " ";
   }
+  cerr << endl;
 
-  int val = n;
-  for (int i = 0; i < k; i++)
-  {
-    int m = rand() % (val - (k - i - 1)) + 1;
-    if (i == k - 1) m = val;
-    val -= m;
-    for (int j = 0; j < m; j++) 
-    {
-      color[nodes.size()] = i;
-      nodes.push_back(generate(basis[i], p));
-    }
-  }
 
-  assert(color[n - 1] == k - 1);
+  count_colors(k, n);
+  for (int i = 0; i < n; i++)
+    nodes.push_back(generate(basis[color[i]], p));
 
   gr.resize(n); 
   int E = 0;
@@ -110,10 +130,18 @@ int main(int args, char ** argv)
       if (tmp < 4) {
 	gr[i].push_back(edge(j, tmp));
 	gr[j].push_back(edge(i, tmp));
-	++E;
+      } else {
+	gr[i].push_back(edge(j, -1));
+	gr[j].push_back(edge(i, -1));
       }
+      ++E;
     }
   }
+
+  cerr << "! colors: ";
+  for (int i = 0; i < n; i++)
+    cerr << color[i] << " ";
+  cerr << endl;
 
   for (int i = 0; i < k; i++)
     cerr << "! basis: " << basis[i] << endl;
@@ -124,15 +152,20 @@ int main(int args, char ** argv)
   out << n << " " << E << " 001" << endl;
   for (int i = 0; i < n; i++)
   {
-    for (size_t j = 0; j < gr[i].size(); j++)
-      out << gr[i][j].to + 1 << " " << 901 - gr[i][j].w *  gr[i][j].w * 100 << " ";
+    for (size_t j = 0; j < gr[i].size(); j++) {
+      if (gr[i][j].w < 0) out << gr[i][j].to + 1 << " " << 1 << " ";
+      else out << gr[i][j].to + 1 << " " << INF - gr[i][j].w *  gr[i][j].w * 1000 << " ";
+
+      cerr << gr[i][j].w *  gr[i][j].w * 100 << " ";
+    }
+    cerr << " waat " << endl;
     out << endl;
   }
 
   out.close();
   out.open("./test.info", ios::out | ios::trunc);
 
-  out << n << endl;
+  out << n << " " << k << endl;
   for (int i = 0; i < n; i++)
     out << color[i] << endl;
 
