@@ -5,6 +5,8 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
+#include <cstdlib>
+#include <ctime>
 
 using namespace std;
 
@@ -15,10 +17,23 @@ struct edge {
   edge(int _to, int _w) : to(_to), w(_w) { }
 };
 
-int gr[MAXN][MAXN];
+int gr[MAXN][MAXN], color[MAXN], color_rev[MAXN], result[MAXN][MAXN];
+bool used[MAXN];
+int cur_color = 0;
+
+void recolor(int cur, int n)
+{
+  if (used[cur]) return;
+  used[cur] = true;
+  color[cur] = cur_color;
+  for (int i = 0; i < n; i++)
+    if (gr[cur][i] == 100) recolor(i, n);
+}
 
 int main(int args, char ** argc)
 {
+  srand(time(NULL));
+
   if (args != 2) {
     cerr << "Wrong input format!" << endl;
     cerr << "Usage: prog_name [path_to_file]" << endl;
@@ -52,6 +67,15 @@ int main(int args, char ** argc)
 	gr[i][x] = w;
       }
     }
+
+    for (int i = 0; i < n; i++)
+    {
+      if (!used[i]) {
+        recolor(i, n);
+	color_rev[cur_color] = i;
+        cur_color += 1;
+      }
+    }
   } 
   catch(...)
   {
@@ -63,13 +87,22 @@ int main(int args, char ** argc)
   ofstream out;
   out.open(string(argc[1]) + ".dl", ofstream::out | ofstream::trunc);
 
+  for (int i = 0; i < n; i++)
+  {
+    for (int j = 0; j < n; j++)
+      result[color[i]][color[j]] = max(result[color[i]][color[j]], gr[i][j]);
+  }
+  
+  cerr << "! old vertex count: " << n << endl;
+  cerr << "! new vertex count: " << cur_color << endl;
+
   out << "dl" << endl << "format=edgelist1" << endl;
   out << "n=3" << endl << "data:" << endl;
 
-  for (int i = 0; i < n; i++)
+  for (int i = 0; i < cur_color; i++)
   {
-    for (int j = i + 1; j < n; j++)
-      if (gr[i][j] >= 100) out << i + 1 << " " << j + 1 << " " << gr[i][j] << endl;
+    for (int j = i + 1; j < cur_color; j++)
+      if (result[i][j] >= 99) out << i + 1 << " " << j + 1 << " " << result[i][j] << endl;
   }
 
   out << endl;
